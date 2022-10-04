@@ -16,8 +16,8 @@ const main = async () => {
   const configs = load(configsFile);
 
   app.post('/deploy/:token', async (req, res) => {
-    res.end('done');
     fs.writeFile('hook.json', JSON.stringify(req.body, null, 2));
+    res.end('done');
   });
 
   app.get('/deploy/:token', async (req, res) => {
@@ -31,7 +31,7 @@ const main = async () => {
       const [name, path] = Object.entries(app)[0];
       deploy(name, path, index);
     });
-    req.send('done');
+    res.send('done');
   });
 
   http.createServer(app).listen(PORT, () => {
