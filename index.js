@@ -7,8 +7,6 @@ import http from 'http';
 
 config();
 
-const projectPath = process.env.PROJECT_PATH;
-const appName = process.env.APP_NAME;
 const PORT = process.env.PORT;
 const SECRET = process.env.SECRET;
 
@@ -17,16 +15,21 @@ const main = async () => {
   const configsFile = await fs.readFile('config.yaml', 'utf-8');
   const configs = load(configsFile);
 
-  app.get('/deploy/:token', async (res, req) => {
-    if (res.params.token !== SECRET) {
-      req.status(401);
-      return req.end();
+  app.post('/deploy/:token', async (req, res) => {
+    res.end('done');
+    fs.writeFile('hook.json', JSON.stringify(req.body, null, 2));
+  });
+
+  app.get('/deploy/:token', async (req, res) => {
+    if (req.params.token !== SECRET) {
+      res.status(401);
+      return res.end();
     }
 
     // TODO: send msg through telegram about the deployment result
     configs.forEach((app, index) => {
       const [name, path] = Object.entries(app)[0];
-      deploy(name, path, index).on('exit', (code) => {});
+      deploy(name, path, index);
     });
     req.send('done');
   });
