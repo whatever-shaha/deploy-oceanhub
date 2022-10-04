@@ -15,6 +15,7 @@ const main = async () => {
   const configsFile = await fs.readFile('config.yaml', 'utf-8');
   const configs = load(configsFile);
 
+  app.use('*', () => express.urlencoded({ extended: true }));
   app.post('/deploy/:token', async (req, res) => {
     fs.writeFile('hook.json', JSON.stringify(req.body, null, 2));
     res.end('done');
