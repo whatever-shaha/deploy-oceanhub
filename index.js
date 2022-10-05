@@ -24,13 +24,14 @@ const main = async () => {
     const result = {};
     configs.forEach((app, index) => {
       if (app.ref !== req.body.ref) {
-        result[app.name] = `${app.name} refs did not match, app ref:${app.ref} - remote ref:${req.body.ref}`;
+        result[app.name] = `refs did not match, app ref:${app.ref} - remote ref:${req.body.ref}`;
         console.log(`---SKIPPING DEPLOYMENT FOR ${app.name}, REFS DID NOT MATCH---`);
         console.log(`APP REF: ${app.ref}`);
         console.log(`REMOTE REF: ${req.body.ref}`);
 
         return;
       }
+      result[app.name] = `deployement has been started, remote ref:${req.body.ref}`;
       deploy(app, index);
     });
     result.done = true;
