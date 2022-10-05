@@ -1,9 +1,9 @@
-import { exec } from 'child_process';
-import fs from 'fs/promises';
-import { load } from 'js-yaml';
 import { config } from 'dotenv';
 import express from 'express';
+import fs from 'fs/promises';
 import http from 'http';
+import { load } from 'js-yaml';
+import { deploy } from './utils/deploy.js';
 
 config();
 
@@ -15,24 +15,26 @@ const main = async () => {
   const configsFile = await fs.readFile('config.yaml', 'utf-8');
   const configs = load(configsFile);
 
-  app.use('*', express.urlencoded({ extended: true }));
+  app.use(express.json());
   app.post('/deploy/:token', async (req, res) => {
-    fs.writeFile('hook.json', JSON.stringify(req.body, null, 2));
-    res.end('done');
-  });
-
-  app.get('/deploy/:token', async (req, res) => {
-    if (req.params.token !== SECRET) {
+    if (SECRET !== req.params.token) {
       res.status(401);
-      return res.end();
+      res.end('unauthorized');
     }
-
-    // TODO: send msg through telegram about the deployment result
+    const result = {};
     configs.forEach((app, index) => {
-      const [name, path] = Object.entries(app)[0];
-      deploy(name, path, index);
+      if (app.ref !== req.body.ref) {
+        result[app.name] = `${app.name} refs did not match, app ref:${app.ref} - remote ref:${req.body.ref}`;
+        console.log(`---SKIPPING DEPLOYMENT FOR ${app.name}, REFS DID NOT MATCH---`);
+        console.log(`APP REF: ${app.ref}`);
+        console.log(`REMOTE REF: ${req.body.ref}`);
+
+        return;
+      }
+      deploy(app, index);
     });
-    res.send('done');
+    result.done = true;
+    res.json(result);
   });
 
   http.createServer(app).listen(PORT, () => {
@@ -41,23 +43,3 @@ const main = async () => {
 };
 
 main().catch((e) => console.error('MAIN', e));
-
-function deploy(name, path, index) {
-  return exec(
-    `cd ${path} && git pull && yarn install && yarn build && pm2 restart ${name}`,
-    (execErr, out, err) => {
-      console.log('');
-      console.log(`............deployment start ${index}:${name}............`);
-      console.log('path: ' + path);
-      if (execErr) {
-        console.log(execErr);
-      }
-      if ((execErr === null) & (err === '')) {
-        console.log(`+++++++++++++++++deployment finish success ${index}:${name}+++++++++++++++++`);
-      } else {
-        console.log(`xxxxxxxxxxxxxxxxxxxx -deployment finish ERROR ${index}:${name}- xxxxxxxxxxxxxxxxxxxx`);
-      }
-      console.log('');
-    }
-  );
-}

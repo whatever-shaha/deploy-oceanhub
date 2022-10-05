@@ -1,0 +1,8 @@
+{
+  "apps": [
+    {
+      "name": "deploy ocenhub",
+      "script": "yarn start"
+    }
+  ]
+}
